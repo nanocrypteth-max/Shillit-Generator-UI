@@ -1,4 +1,4 @@
-# SHILL://GEN — React UI
+# SHILLIT AI — React UI
 
 Vite + React + TypeScript frontend for the `POST /api/generate` backend. The API endpoint is configurable in one place, so you just point it at your BE.
 
