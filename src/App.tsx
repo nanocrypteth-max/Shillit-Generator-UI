@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { generate, ApiException } from "./api";
 import PriceChart from "./PriceChart";
 import PostToX from "./PostToX";
 import Scheduler from "./Scheduler";
+import { useGenerateAccess } from "./gate";
 import type { GenerateResponse, Tone, Lang } from "./types";
 
 const CHAINS = [
@@ -50,12 +51,36 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedAddr, setCopiedAddr] = useState(false);
+  const gate = useGenerateAccess();
+
+  // UX: once the wallet connects, drop the "connect your wallet" alert.
+  useEffect(() => {
+    if (gate.authenticated) {
+      setError((e) =>
+        e && e.toLowerCase().includes("connect your wallet") ? null : e,
+      );
+    }
+  }, [gate.authenticated]);
+
+  function copyAddress() {
+    if (!gate.address) return;
+    navigator.clipboard.writeText(gate.address);
+    setCopiedAddr(true);
+    setTimeout(() => setCopiedAddr(false), 1400);
+  }
 
   async function onGenerate() {
     setError(null);
     setResult(null);
     if (!ca.trim()) {
       setError("Enter a contract address.");
+      return;
+    }
+    // GATE: require wallet login (and payment if configured) before generating.
+    const access = await gate.ensureAccess();
+    if (!access.ok) {
+      setError(access.reason);
       return;
     }
     setLoading(true);
@@ -90,7 +115,7 @@ export default function App() {
     <div className="wrap">
       <header>
         <div className="brand">
-          SHILL<b>://</b>GEN<span className="blink">_</span>
+          SHILL<b>IT</b>AI<span className="blink">_</span>
         </div>
         <div className="sub">
           paste a contract address &rarr; auto-fetch market data &rarr; generate
@@ -211,6 +236,41 @@ export default function App() {
             <button className="go" onClick={onGenerate} disabled={loading}>
               {loading ? <span className="dots">FETCHING</span> : "GENERATE"}
             </button>
+
+            {gate.enabled && (
+              <div className="gate-meta">
+                {gate.authenticated ? (
+                  <div className="wallet-chip">
+                    <span className="wdot" />
+                    <span className="waddr">
+                      {gate.address
+                        ? `${gate.address.slice(0, 6)}…${gate.address.slice(-4)}`
+                        : "Connected"}
+                    </span>
+                    <button
+                      className="wchip-btn"
+                      onClick={copyAddress}
+                      title="Copy address"
+                      disabled={!gate.address}
+                    >
+                      {copiedAddr ? "✓" : "Copy"}
+                    </button>
+                    <span className="wchip-sep" />
+                    <button
+                      className="wchip-btn"
+                      onClick={gate.logout}
+                      title="Disconnect"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <span className="x-dim">
+                    wallet required — connect on generate
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {error && <div className="err">✕ {error}</div>}

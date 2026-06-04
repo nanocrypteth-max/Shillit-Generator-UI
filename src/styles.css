@@ -822,3 +822,77 @@ footer {
   gap: 12px;
   margin-left: auto;
 }
+
+/* wallet gate status */
+.gate-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+/* connected wallet chip — Web3/dApp style */
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #0d1316, #0a0e10);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  padding: 6px 8px 6px 12px;
+  box-shadow:
+    0 0 0 1px rgba(182, 255, 60, 0.06),
+    inset 0 0 16px rgba(182, 255, 60, 0.04);
+}
+.wdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: wpulse 2s ease-in-out infinite;
+}
+@keyframes wpulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.waddr {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+.wchip-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--line);
+}
+.wchip-btn {
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.wchip-btn:hover:not(:disabled) {
+  color: var(--accent);
+  background: rgba(182, 255, 60, 0.08);
+}
+.wchip-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
