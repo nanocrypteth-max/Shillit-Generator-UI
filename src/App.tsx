@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { generate, ApiException } from "./api";
 import PriceChart from "./PriceChart";
+import PostToX from "./PostToX";
+import Scheduler from "./Scheduler";
 import type { GenerateResponse, Tone, Lang } from "./types";
 
 const CHAINS = [
@@ -36,6 +38,7 @@ function ageStr(epochMs: number): string {
 }
 
 export default function App() {
+  const [mode, setMode] = useState<"manual" | "scheduler">("manual");
   const [ca, setCa] = useState("");
   const [chain, setChain] = useState("");
   const [tone, setTone] = useState<Tone>("hype");
@@ -87,8 +90,7 @@ export default function App() {
     <div className="wrap">
       <header>
         <div className="brand">
-          SHILLIT<b>.AI</b>
-          <span className="blink">_</span>
+          SHILL<b>://</b>GEN<span className="blink">_</span>
         </div>
         <div className="sub">
           paste a contract address &rarr; auto-fetch market data &rarr; generate
@@ -96,166 +98,188 @@ export default function App() {
         </div>
       </header>
 
-      <div className="panel">
-        <div className="ca-field">
-          <label htmlFor="ca">Contract Address (CA)</label>
-          <input
-            id="ca"
-            type="text"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="0x...  or  Solana base58 address"
-            value={ca}
-            onChange={(e) => setCa(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !loading) onGenerate();
-            }}
-          />
-        </div>
-
-        <div className="row">
-          <div className="third">
-            <label htmlFor="chain">Chain</label>
-            <select
-              id="chain"
-              value={chain}
-              onChange={(e) => setChain(e.target.value)}
-            >
-              {CHAINS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="third">
-            <label htmlFor="tone">Tone</label>
-            <select
-              id="tone"
-              value={tone}
-              onChange={(e) => setTone(e.target.value as Tone)}
-            >
-              {TONES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="third">
-            <label htmlFor="lang">Language</label>
-            <select
-              id="lang"
-              value={lang}
-              onChange={(e) => setLang(e.target.value as Lang)}
-            >
-              <option value="en">English</option>
-              <option value="id">Indonesia</option>
-              <option value="zh">中文 (Chinese)</option>
-            </select>
-          </div>
-        </div>
-
-        {tone === "reply" && (
-          <div className="ca-field" style={{ marginTop: 16 }}>
-            <label htmlFor="replyTo">Reply to (paste the tweet / post)</label>
-            <textarea
-              id="replyTo"
-              rows={3}
-              placeholder="Paste the tweet or comment you want to reply to…"
-              value={replyTo}
-              onChange={(e) => setReplyTo(e.target.value)}
-            />
-          </div>
-        )}
-
-        <label className={"toggle-row" + (withHashtags ? " on" : "")}>
-          <div className="toggle-text">
-            <span className="toggle-title">
-              <b>#</b> With Hashtags
-            </span>
-            <span className="toggle-desc">
-              Auto-add relevant crypto / token tags
-            </span>
-          </div>
-          <input
-            type="checkbox"
-            checked={withHashtags}
-            onChange={(e) => setWithHashtags(e.target.checked)}
-          />
-          <span className="switch">
-            <span className="knob" />
-          </span>
-        </label>
-
-        <button className="go" onClick={onGenerate} disabled={loading}>
-          {loading ? <span className="dots">FETCHING</span> : "GENERATE"}
+      <div className="modebar">
+        <button
+          className={"modetab" + (mode === "manual" ? " on" : "")}
+          onClick={() => setMode("manual")}
+        >
+          Manual
+        </button>
+        <button className="modetab" disabled title="Coming soon">
+          Auto Scheduler <span className="soon">SOON</span>
         </button>
       </div>
 
-      {error && <div className="err">✕ {error}</div>}
+      {mode === "scheduler" && <Scheduler />}
 
-      {result && m && (
-        <div className="out">
+      {mode === "manual" && (
+        <>
           <div className="panel">
-            <div className="tokline">
-              <span className="tok-sym">${m.symbol}</span>
-              <span className="tok-name">{m.name}</span>
-              <span className="tag">
-                {m.source} · {m.chain}
+            <div className="ca-field">
+              <label htmlFor="ca">Contract Address (CA)</label>
+              <input
+                id="ca"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="0x...  or  Solana base58 address"
+                value={ca}
+                onChange={(e) => setCa(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !loading) onGenerate();
+                }}
+              />
+            </div>
+
+            <div className="row">
+              <div className="third">
+                <label htmlFor="chain">Chain</label>
+                <select
+                  id="chain"
+                  value={chain}
+                  onChange={(e) => setChain(e.target.value)}
+                >
+                  {CHAINS.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="third">
+                <label htmlFor="tone">Tone</label>
+                <select
+                  id="tone"
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value as Tone)}
+                >
+                  {TONES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="third">
+                <label htmlFor="lang">Language</label>
+                <select
+                  id="lang"
+                  value={lang}
+                  onChange={(e) => setLang(e.target.value as Lang)}
+                >
+                  <option value="en">English</option>
+                  <option value="id">Indonesia</option>
+                  <option value="zh">中文 (Chinese)</option>
+                </select>
+              </div>
+            </div>
+
+            {tone === "reply" && (
+              <div className="ca-field" style={{ marginTop: 16 }}>
+                <label htmlFor="replyTo">
+                  Reply to (paste the tweet / post)
+                </label>
+                <textarea
+                  id="replyTo"
+                  rows={3}
+                  placeholder="Paste the tweet or comment you want to reply to…"
+                  value={replyTo}
+                  onChange={(e) => setReplyTo(e.target.value)}
+                />
+              </div>
+            )}
+
+            <label className={"toggle-row" + (withHashtags ? " on" : "")}>
+              <div className="toggle-text">
+                <span className="toggle-title">
+                  <b>#</b> With Hashtags
+                </span>
+                <span className="toggle-desc">
+                  Auto-add relevant crypto / token tags
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={withHashtags}
+                onChange={(e) => setWithHashtags(e.target.checked)}
+              />
+              <span className="switch">
+                <span className="knob" />
               </span>
-            </div>
+            </label>
 
-            <div className="grid">
-              <div className="cell">
-                <div className="k">Price</div>
-                <div className="v">{usd(m.priceUsd)}</div>
-              </div>
-              <div className="cell">
-                <div className="k">MCap / FDV</div>
-                <div className="v">
-                  {usd(m.marketCap ?? m.fdv)}
-                  {m.marketCap == null ? " (FDV)" : ""}
-                </div>
-              </div>
-              <div className="cell">
-                <div className="k">24h Vol</div>
-                <div className="v">{usd(m.volume24h)}</div>
-              </div>
-              <div className="cell">
-                <div className="k">Liquidity</div>
-                <div className="v">{usd(m.liquidityUsd)}</div>
-              </div>
-              <div className="cell">
-                <div className="k">24h Change</div>
-                <div className={"v " + (chg >= 0 ? "up" : "down")}>
-                  {(chg > 0 ? "+" : "") + chg.toFixed(1)}%
-                </div>
-              </div>
-              <div className="cell">
-                <div className="k">24h Txns</div>
-                <div className="v">
-                  {m.txns24h.buys} / {m.txns24h.sells}
-                </div>
-              </div>
-              <div className="cell" style={{ gridColumn: "1 / -1" }}>
-                <div className="k">Age</div>
-                <div className="v">{ageStr(m.pairCreatedAt)}</div>
-              </div>
-            </div>
-
-            {/* Live price chart sits directly above Generated Post */}
-            <PriceChart market={m} />
-
-            <div className="post-head" style={{ marginTop: 18 }}>
-              <span>Generated Post</span>
-              <button className="copy" onClick={copyPost}>
-                {copied ? "Copied ✓" : "Copy"}
-              </button>
-            </div>
-            <div className="post">{result.post}</div>
+            <button className="go" onClick={onGenerate} disabled={loading}>
+              {loading ? <span className="dots">FETCHING</span> : "GENERATE"}
+            </button>
           </div>
-        </div>
+
+          {error && <div className="err">✕ {error}</div>}
+
+          {result && m && (
+            <div className="out">
+              <div className="panel">
+                <div className="tokline">
+                  <span className="tok-sym">${m.symbol}</span>
+                  <span className="tok-name">{m.name}</span>
+                  <span className="tag">
+                    {m.source} · {m.chain}
+                  </span>
+                </div>
+
+                <div className="grid">
+                  <div className="cell">
+                    <div className="k">Price</div>
+                    <div className="v">{usd(m.priceUsd)}</div>
+                  </div>
+                  <div className="cell">
+                    <div className="k">MCap / FDV</div>
+                    <div className="v">
+                      {usd(m.marketCap ?? m.fdv)}
+                      {m.marketCap == null ? " (FDV)" : ""}
+                    </div>
+                  </div>
+                  <div className="cell">
+                    <div className="k">24h Vol</div>
+                    <div className="v">{usd(m.volume24h)}</div>
+                  </div>
+                  <div className="cell">
+                    <div className="k">Liquidity</div>
+                    <div className="v">{usd(m.liquidityUsd)}</div>
+                  </div>
+                  <div className="cell">
+                    <div className="k">24h Change</div>
+                    <div className={"v " + (chg >= 0 ? "up" : "down")}>
+                      {(chg > 0 ? "+" : "") + chg.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="cell">
+                    <div className="k">24h Txns</div>
+                    <div className="v">
+                      {m.txns24h.buys} / {m.txns24h.sells}
+                    </div>
+                  </div>
+                  <div className="cell" style={{ gridColumn: "1 / -1" }}>
+                    <div className="k">Age</div>
+                    <div className="v">{ageStr(m.pairCreatedAt)}</div>
+                  </div>
+                </div>
+
+                {/* Live price chart sits directly above Generated Post */}
+                <PriceChart market={m} />
+
+                <div className="post-head" style={{ marginTop: 18 }}>
+                  <span>Generated Post</span>
+                  <button className="copy" onClick={copyPost}>
+                    {copied ? "Copied ✓" : "Copy"}
+                  </button>
+                </div>
+                <div className="post">{result.post}</div>
+
+                <PostToX text={result.post} />
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <footer>
