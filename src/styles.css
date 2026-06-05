@@ -896,3 +896,54 @@ footer {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Shillit AI official CA bar */
+.ca-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+  padding: 9px 14px;
+  background: linear-gradient(180deg, #0d1316, #0a0e10);
+  border: 1px solid var(--accent-dim);
+  border-radius: 9px;
+}
+.ca-label {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.ca-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ca-copy {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.ca-copy:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: rgba(182, 255, 60, 0.08);
+}

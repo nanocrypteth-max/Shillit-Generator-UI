@@ -4,6 +4,7 @@ import PriceChart from "./PriceChart";
 import PostToX from "./PostToX";
 import Scheduler from "./Scheduler";
 import { useGenerateAccess } from "./gate";
+import { SHILLIT_CA } from "./gateConfig";
 import type { GenerateResponse, Tone, Lang } from "./types";
 
 const CHAINS = [
@@ -52,7 +53,15 @@ export default function App() {
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedAddr, setCopiedAddr] = useState(false);
+  const [copiedCa, setCopiedCa] = useState(false);
   const gate = useGenerateAccess();
+
+  function copyShillitCa() {
+    if (!SHILLIT_CA) return;
+    navigator.clipboard.writeText(SHILLIT_CA);
+    setCopiedCa(true);
+    setTimeout(() => setCopiedCa(false), 1400);
+  }
 
   // UX: once the wallet connects, drop the "connect your wallet" alert.
   useEffect(() => {
@@ -122,6 +131,16 @@ export default function App() {
           post
         </div>
       </header>
+
+      {SHILLIT_CA && (
+        <div className="ca-bar">
+          <span className="ca-label">$SHILLIT CA</span>
+          <span className="ca-value">{SHILLIT_CA}</span>
+          <button className="ca-copy" onClick={copyShillitCa}>
+            {copiedCa ? "Copied ✓" : "Copy"}
+          </button>
+        </div>
+      )}
 
       <div className="modebar">
         <button
@@ -193,8 +212,9 @@ export default function App() {
                   onChange={(e) => setLang(e.target.value as Lang)}
                 >
                   <option value="en">English</option>
-                  <option value="id">Indonesia</option>
                   <option value="zh">中文 (Chinese)</option>
+                  <option value="ja">日本語 (Japanese)</option>
+                  <option value="de">Deutsch (German)</option>
                 </select>
               </div>
             </div>

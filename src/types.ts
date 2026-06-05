@@ -16,8 +16,8 @@ export interface TokenMarket {
   pairCreatedAt: number;
   dexId: string | null;
   url: string | null;
-  pairAddress: string | null; // pool address -> untuk chart OHLCV
-  chartNetwork: string; // slug network GeckoTerminal
+  pairAddress: string | null; // pool address for the chart
+  chartNetwork: string; // GeckoTerminal network slug
 }
 
 export interface GenerateResponse {
@@ -31,7 +31,7 @@ export interface ApiError {
 }
 
 export type Tone = "hype" | "degen" | "professional" | "ct" | "reply";
-export type Lang = "en" | "id";
+export type Lang = "en" | "zh" | "ja" | "de";
 
 export interface GenerateRequest {
   ca: string;
@@ -42,10 +42,9 @@ export interface GenerateRequest {
   replyTo?: string;
 }
 
-// untuk /api/chart
 export interface ChartPoint {
-  t: number; // epoch ms
-  c: number; // close price USD
+  t: number;
+  c: number;
 }
 export interface ChartResponse {
   points: ChartPoint[];

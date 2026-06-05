@@ -190,20 +190,6 @@ export default function PostToX({ text }: { text: string }) {
             autoComplete="off"
           />
 
-          <label>Callback URL</label>
-          <input
-            value={callbackUrl}
-            onChange={(e) => setCallbackUrl(e.target.value)}
-            autoComplete="off"
-          />
-
-          <label>Scopes</label>
-          <input
-            value={scopes}
-            onChange={(e) => setScopes(e.target.value)}
-            autoComplete="off"
-          />
-
           <div className="x-form-actions">
             <button
               className="x-save"
