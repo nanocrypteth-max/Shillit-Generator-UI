@@ -31,6 +31,13 @@ function usd(n: number | null | undefined): string {
   return "$" + Number(n).toPrecision(4);
 }
 
+// Deterministic gradient avatar from a wallet address.
+function avatarGradient(address: string | null): string {
+  if (!address) return "linear-gradient(135deg, #b6ff3c, #6f9e22)";
+  const h = parseInt(address.slice(2, 8) || "0", 16) % 360;
+  return `linear-gradient(135deg, hsl(${h} 75% 55%), hsl(${(h + 50) % 360} 75% 45%))`;
+}
+
 function ageStr(epochMs: number): string {
   if (!epochMs) return "n/a";
   const h = (Date.now() - epochMs) / 3_600_000;
@@ -191,6 +198,7 @@ export default function App() {
   const [copiedCa, setCopiedCa] = useState(false);
   const [copiedInfo, setCopiedInfo] = useState(false);
   const [copiedImg, setCopiedImg] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const gate = useGenerateAccess();
 
   function copyShillitCa() {
@@ -306,13 +314,67 @@ export default function App() {
   return (
     <div className="wrap">
       <header>
-        <div className="brand">
-          SHILL<b>://</b>GEN<span className="blink">_</span>
+        <div className="brand-wrap">
+          <div className="brand">
+            SHILL<b>://</b>GEN<span className="blink">_</span>
+          </div>
+          <div className="sub">
+            paste a contract address &rarr; auto-fetch market data &rarr;
+            generate post
+          </div>
         </div>
-        <div className="sub">
-          paste a contract address &rarr; auto-fetch market data &rarr; generate
-          post
-        </div>
+
+        {gate.enabled && (
+          <div className="profile">
+            {gate.authenticated ? (
+              <>
+                <button
+                  className="profile-chip"
+                  onClick={() => setProfileOpen((o) => !o)}
+                >
+                  <span
+                    className="avatar"
+                    style={{ background: avatarGradient(gate.address) }}
+                  />
+                  <span className="profile-addr">
+                    {gate.address
+                      ? `${gate.address.slice(0, 6)}…${gate.address.slice(-4)}`
+                      : "Wallet"}
+                  </span>
+                  <span className="profile-caret">▾</span>
+                </button>
+                {profileOpen && (
+                  <div className="profile-menu">
+                    <div className="profile-menu-label">Connected wallet</div>
+                    <div className="profile-menu-addr">
+                      {gate.address ?? "—"}
+                    </div>
+                    <button
+                      className="profile-menu-btn"
+                      onClick={copyAddress}
+                      disabled={!gate.address}
+                    >
+                      {copiedAddr ? "Copied ✓" : "Copy address"}
+                    </button>
+                    <button
+                      className="profile-menu-btn danger"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        gate.logout();
+                      }}
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button className="profile-connect" onClick={gate.login}>
+                Connect Wallet
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {SHILLIT_CA && (
@@ -440,38 +502,11 @@ export default function App() {
               {loading ? <span className="dots">FETCHING</span> : "GENERATE"}
             </button>
 
-            {gate.enabled && (
+            {gate.enabled && !gate.authenticated && (
               <div className="gate-meta">
-                {gate.authenticated ? (
-                  <div className="wallet-chip">
-                    <span className="wdot" />
-                    <span className="waddr">
-                      {gate.address
-                        ? `${gate.address.slice(0, 6)}…${gate.address.slice(-4)}`
-                        : "Connected"}
-                    </span>
-                    <button
-                      className="wchip-btn"
-                      onClick={copyAddress}
-                      title="Copy address"
-                      disabled={!gate.address}
-                    >
-                      {copiedAddr ? "✓" : "Copy"}
-                    </button>
-                    <span className="wchip-sep" />
-                    <button
-                      className="wchip-btn"
-                      onClick={gate.logout}
-                      title="Disconnect"
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                ) : (
-                  <span className="x-dim">
-                    wallet required — connect on generate
-                  </span>
-                )}
+                <span className="x-dim">
+                  wallet required — connect on generate
+                </span>
               </div>
             )}
           </div>
