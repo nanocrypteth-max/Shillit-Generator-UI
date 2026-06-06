@@ -5,7 +5,7 @@ import PostToX from "./PostToX";
 import Scheduler from "./Scheduler";
 import { useGenerateAccess } from "./gate";
 import { SHILLIT_CA } from "./gateConfig";
-import type { GenerateResponse, Tone, Lang } from "./types";
+import type { GenerateResponse, Tone, Lang, TokenMarket } from "./types";
 
 const CHAINS = [
   { value: "", label: "Auto" },
@@ -39,6 +39,141 @@ function ageStr(epochMs: number): string {
   return `${Math.round(h / 24)}d old`;
 }
 
+// Render the token info table to a PNG blob (dApp card, matches the on-screen panel).
+async function renderTokenCardBlob(m: TokenMarket, chg: number): Promise<Blob> {
+  try {
+    await (document as any).fonts?.ready;
+  } catch {
+    /* fonts optional */
+  }
+  const scale = 2;
+  const W = 900,
+    H = 360,
+    P = 28;
+  const canvas = document.createElement("canvas");
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext("2d")!;
+  ctx.scale(scale, scale);
+
+  const C = {
+    bg: "#0a0e10",
+    border: "rgba(182,255,60,0.25)",
+    cell: "#0e1417",
+    line: "rgba(255,255,255,0.06)",
+    accent: "#b6ff3c",
+    text: "#e6ebe8",
+    dim: "#7c8a82",
+    red: "#ff5470",
+  };
+  const MONO = "'IBM Plex Mono', ui-monospace, monospace";
+  const DISP = "'Chakra Petch', " + MONO;
+  const rr = (x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
+
+  ctx.fillStyle = C.bg;
+  rr(0, 0, W, H, 18);
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = C.border;
+  rr(0.5, 0.5, W - 1, H - 1, 18);
+  ctx.stroke();
+
+  // header
+  ctx.textBaseline = "alphabetic";
+  ctx.font = "700 30px " + DISP;
+  ctx.fillStyle = C.accent;
+  const sym = "$" + m.symbol;
+  ctx.fillText(sym, P, 52);
+  const symW = ctx.measureText(sym).width;
+  ctx.font = "500 17px " + MONO;
+  ctx.fillStyle = C.dim;
+  ctx.fillText(m.name, P + symW + 14, 50);
+
+  const tag = `${m.source.toUpperCase()} · ${m.chain.toUpperCase()}`;
+  ctx.font = "600 12px " + MONO;
+  const tagW = ctx.measureText(tag).width;
+  const pillW = tagW + 24;
+  const pillX = W - P - pillW;
+  ctx.strokeStyle = C.line;
+  rr(pillX, 32, pillW, 28, 6);
+  ctx.stroke();
+  ctx.fillStyle = C.dim;
+  ctx.fillText(tag, pillX + 12, 50);
+
+  ctx.strokeStyle = C.line;
+  ctx.beginPath();
+  ctx.moveTo(P, 76);
+  ctx.lineTo(W - P, 76);
+  ctx.stroke();
+
+  // grid
+  const gap = 12;
+  const gridX = P,
+    gridY = 92,
+    rowH = 72;
+  const colW = (W - 2 * P - 2 * gap) / 3;
+  const cell = (
+    col: number,
+    row: number,
+    label: string,
+    value: string,
+    color?: string,
+    full?: boolean,
+  ) => {
+    const cw = full ? W - 2 * P : colW;
+    const cx = gridX + col * (colW + gap);
+    const cy = gridY + row * (rowH + gap);
+    ctx.fillStyle = C.cell;
+    rr(cx, cy, cw, rowH, 10);
+    ctx.fill();
+    ctx.font = "500 11px " + MONO;
+    ctx.fillStyle = C.dim;
+    ctx.fillText(label.toUpperCase(), cx + 16, cy + 27);
+    ctx.font = "600 20px " + MONO;
+    ctx.fillStyle = color ?? C.text;
+    ctx.fillText(value, cx + 16, cy + 53);
+  };
+  cell(0, 0, "Price", usd(m.priceUsd));
+  cell(
+    1,
+    0,
+    m.marketCap == null ? "FDV" : "MCap / FDV",
+    usd(m.marketCap ?? m.fdv),
+  );
+  cell(2, 0, "24h Vol", usd(m.volume24h));
+  cell(0, 1, "Liquidity", usd(m.liquidityUsd));
+  cell(
+    1,
+    1,
+    "24h Change",
+    (chg > 0 ? "+" : "") + chg.toFixed(1) + "%",
+    chg >= 0 ? C.accent : C.red,
+  );
+  cell(2, 1, "24h Txns", `${m.txns24h.buys} / ${m.txns24h.sells}`);
+  cell(0, 2, "Age", ageStr(m.pairCreatedAt), undefined, true);
+
+  ctx.font = "700 12px " + DISP;
+  ctx.fillStyle = "rgba(182,255,60,0.5)";
+  ctx.textAlign = "right";
+  ctx.fillText("SHILL://GEN", W - P, H - 14);
+  ctx.textAlign = "left";
+
+  return await new Promise<Blob>((res, rej) =>
+    canvas.toBlob(
+      (b) => (b ? res(b) : rej(new Error("blob failed"))),
+      "image/png",
+    ),
+  );
+}
+
 export default function App() {
   const [mode, setMode] = useState<"manual" | "scheduler">("manual");
   const [ca, setCa] = useState("");
@@ -55,6 +190,7 @@ export default function App() {
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [copiedCa, setCopiedCa] = useState(false);
   const [copiedInfo, setCopiedInfo] = useState(false);
+  const [copiedImg, setCopiedImg] = useState(false);
   const gate = useGenerateAccess();
 
   function copyShillitCa() {
@@ -139,6 +275,32 @@ export default function App() {
     navigator.clipboard.writeText(lines.join("\n"));
     setCopiedInfo(true);
     setTimeout(() => setCopiedInfo(false), 1400);
+  }
+
+  async function copyTokenImage() {
+    if (!m) return;
+    try {
+      if (typeof ClipboardItem === "undefined")
+        throw new Error("no ClipboardItem");
+      // Safari/macOS: pass the Blob PROMISE to ClipboardItem and write within the gesture.
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": renderTokenCardBlob(m, chg) }),
+      ]);
+      setCopiedImg(true);
+      setTimeout(() => setCopiedImg(false), 1400);
+    } catch {
+      // Fallback: download the PNG if clipboard image isn't allowed.
+      try {
+        const blob = await renderTokenCardBlob(m, chg);
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${m.symbol}-info.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   return (
@@ -327,6 +489,9 @@ export default function App() {
                   </span>
                   <button className="copy tok-copy" onClick={copyTokenInfo}>
                     {copiedInfo ? "Copied ✓" : "Copy info"}
+                  </button>
+                  <button className="copy tok-copy2" onClick={copyTokenImage}>
+                    {copiedImg ? "Copied ✓" : "Copy image"}
                   </button>
                 </div>
 

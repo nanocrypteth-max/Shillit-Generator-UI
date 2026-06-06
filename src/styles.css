@@ -929,8 +929,8 @@ footer {
 }
 .ca-copy {
   background: transparent;
-  border: 1px solid var(--line);
-  color: var(--dim);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
   font-family: var(--mono);
   font-size: 11px;
   padding: 5px 12px;
@@ -943,12 +943,22 @@ footer {
     background 0.15s;
 }
 .ca-copy:hover {
+  background: rgba(182, 255, 60, 0.08);
+}
+
+/* lime variant for chart toolbar action buttons (Copy / PNG / image) */
+button.tf.lime {
   color: var(--accent);
   border-color: var(--accent-dim);
+}
+button.tf.lime:hover:not(:disabled) {
   background: rgba(182, 255, 60, 0.08);
 }
 
 /* copy-info button on the token line */
 .tok-copy {
   margin-left: auto;
+}
+.tok-copy2 {
+  margin-left: 8px;
 }

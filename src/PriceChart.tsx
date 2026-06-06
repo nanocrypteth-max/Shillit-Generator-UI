@@ -3,7 +3,7 @@ import { fetchChart } from "./api";
 import type { ChartPoint, TokenMarket } from "./types";
 
 const POLL_MS = 30_000;
-const WATERMARK = "Shillit AI";
+const WATERMARK = "SHILL.IT";
 
 // On-screen sparkline dims
 const SW = 660,
@@ -189,7 +189,7 @@ export default function PriceChart({ market }: Props) {
       // footer
       `<line x1="28" y1="418" x2="${EW - 28}" y2="418" stroke="#1d262c"/>`,
       `<text x="28" y="442" font-family="monospace" font-size="16" font-weight="700" letter-spacing="3" fill="#b6ff3c">${WATERMARK}</text>`,
-      `<text x="${EW - 28}" y="442" text-anchor="end" font-family="monospace" font-size="11" fill="#6c7a78">${ts}</text>`,
+      `<text x="${EW - 28}" y="442" text-anchor="end" font-family="monospace" font-size="11" fill="#6c7a78">${ts} · not financial advice</text>`,
       `</svg>`,
     ].join("");
   }
@@ -233,9 +233,12 @@ export default function PriceChart({ market }: Props) {
   }
   async function copy() {
     try {
-      const blob = await toPngBlob();
+      if (typeof ClipboardItem === "undefined")
+        throw new Error("no ClipboardItem");
+      // Safari/macOS: ClipboardItem must receive the Blob PROMISE and write() must be
+      // initiated within the user gesture — do NOT await the blob before write().
       await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
+        new ClipboardItem({ "image/png": toPngBlob() }),
       ]);
       setCopied(true);
       setTimeout(() => setCopied(false), 1400);
@@ -271,7 +274,7 @@ export default function PriceChart({ market }: Props) {
             ))}
           </div>
           <button
-            className="tf"
+            className="tf lime"
             onClick={download}
             disabled={!hasChart}
             title="Download card PNG"
@@ -279,7 +282,7 @@ export default function PriceChart({ market }: Props) {
             ↓ PNG
           </button>
           <button
-            className="tf"
+            className="tf lime"
             onClick={copy}
             disabled={!hasChart}
             title="Copy card image"
