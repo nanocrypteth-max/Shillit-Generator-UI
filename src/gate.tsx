@@ -9,14 +9,19 @@
 // - ensureAccess(): not ready -> block; not logged in -> open Privy login; logged in
 //   and price > 0 -> charge on-chain; else allow.
 
-import { createContext, useCallback, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  type ReactNode,
+} from "react";
 import {
   PrivyProvider,
   usePrivy,
   useSendTransaction,
 } from "@privy-io/react-auth";
-// import {PrivyProvider} from '@privy-io/react-auth';
-
+import { setPrivyTokenProvider } from "./xPost";
 import {
   GENERATE_PRICE,
   PAYMENT_CHAIN_ID,
@@ -60,9 +65,16 @@ function NoGate({ children }: { children: ReactNode }) {
 
 // Gate enabled: bridge Privy state into the gate context.
 function PrivyGate({ children }: { children: ReactNode }) {
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout, getAccessToken } =
+    usePrivy();
   const { sendTransaction } = useSendTransaction();
   const address = (user?.wallet?.address as string | undefined) ?? null;
+
+  // Let xPost.ts attach the Privy access token to X API calls, so the backend
+  // keys credentials/tokens by this user's identity (not the cookie).
+  useEffect(() => {
+    setPrivyTokenProvider(() => getAccessToken());
+  }, [getAccessToken]);
 
   const ensureAccess = useCallback(async (): Promise<AccessResult> => {
     if (!ready)

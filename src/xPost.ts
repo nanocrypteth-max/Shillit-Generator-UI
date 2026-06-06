@@ -1,10 +1,32 @@
 // xPost.ts — client helpers for the Post-to-X feature.
-// Uses credentials:"include" so the session cookie flows (required cross-origin;
-// harmless same-origin). In dev, keep VITE_API_BASE empty so requests are
-// same-origin via the Vite proxy and cookies "just work".
+// Sends the Privy access token (Authorization: Bearer …) so the backend can key
+// the user's X credentials + tokens by their wallet/login identity. Falls back to
+// the cookie session when no token is available. Uses credentials:"include" so the
+// session cookie flows (needed for the OAuth popup), same-origin via the Vercel proxy.
 
 const BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
 const BACKEND_ORIGIN = BASE ? new URL(BASE).origin : window.location.origin;
+
+// The Privy token getter is injected by the gate (see gate.tsx). Default: none.
+let tokenProvider: () => Promise<string | null> = async () => null;
+export function setPrivyTokenProvider(fn: () => Promise<string | null>): void {
+  tokenProvider = fn;
+}
+
+async function authedFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  let token: string | null = null;
+  try {
+    token = await tokenProvider();
+  } catch {
+    token = null;
+  }
+  const headers = new Headers(init.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return fetch(`${BASE}${path}`, { ...init, credentials: "include", headers });
+}
 
 export class XPostError extends Error {
   code: string;
@@ -23,7 +45,7 @@ export interface XStatus {
 }
 
 export async function getXStatus(): Promise<XStatus> {
-  const res = await fetch(`${BASE}/api/x/status`, { credentials: "include" });
+  const res = await authedFetch("/api/x/status");
   if (!res.ok) return { connected: false, username: null, configured: false };
   return res.json();
 }
@@ -37,7 +59,7 @@ export interface XConfigView {
 }
 
 export async function getXConfig(): Promise<XConfigView> {
-  const res = await fetch(`${BASE}/api/x/config`, { credentials: "include" });
+  const res = await authedFetch("/api/x/config");
   return res.json();
 }
 
@@ -49,9 +71,8 @@ export interface XConfigInput {
 }
 
 export async function saveXConfig(input: XConfigInput): Promise<void> {
-  const res = await fetch(`${BASE}/api/x/config`, {
+  const res = await authedFetch("/api/x/config", {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -65,17 +86,16 @@ export async function saveXConfig(input: XConfigInput): Promise<void> {
 }
 
 export async function clearXConfig(): Promise<void> {
-  await fetch(`${BASE}/api/x/config`, {
-    method: "DELETE",
-    credentials: "include",
-  });
+  await authedFetch("/api/x/config", { method: "DELETE" });
 }
 
 // Open the OAuth popup and resolve when the callback messages us back.
 export function connectX(): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Open synchronously (within the click gesture) to avoid popup blockers,
+    // then bind this cookie session to the verified owner before navigating to login.
     const popup = window.open(
-      `${BASE}/api/x/login`,
+      "about:blank",
       "x_oauth",
       "width=600,height=760,menubar=no,toolbar=no",
     );
@@ -90,7 +110,6 @@ export function connectX(): Promise<void> {
 
     let settled = false;
     const onMessage = (e: MessageEvent) => {
-      // Verify the message really came from our backend origin.
       if (e.origin !== BACKEND_ORIGIN) return;
       if (!e.data || e.data.source !== "shill-x") return;
       settled = true;
@@ -118,6 +137,13 @@ export function connectX(): Promise<void> {
       window.clearInterval(poll);
     }
     window.addEventListener("message", onMessage);
+
+    // Bind cookie session -> verified owner (Privy id), THEN navigate to /api/x/login.
+    authedFetch("/api/x/flow-init", { method: "POST" })
+      .catch(() => {})
+      .finally(() => {
+        if (!popup.closed) popup.location.href = `${BASE}/api/x/login`;
+      });
   });
 }
 
@@ -128,9 +154,8 @@ export interface PostResult {
 }
 
 export async function postToX(text: string): Promise<PostResult> {
-  const res = await fetch(`${BASE}/api/x/post`, {
+  const res = await authedFetch("/api/x/post", {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
   });
@@ -145,10 +170,7 @@ export async function postToX(text: string): Promise<PostResult> {
 }
 
 export async function logoutX(): Promise<void> {
-  await fetch(`${BASE}/api/x/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+  await authedFetch("/api/x/logout", { method: "POST" });
 }
 
 // ---- Mode 2: scheduled jobs ----
@@ -184,16 +206,15 @@ export interface NewJobInput {
 }
 
 export async function listJobs(): Promise<JobsView> {
-  const res = await fetch(`${BASE}/api/x/jobs`, { credentials: "include" });
+  const res = await authedFetch("/api/x/jobs");
   if (!res.ok)
     return { jobs: [], limits: { minIntervalSec: 300, maxPosts: 100 } };
   return res.json();
 }
 
 export async function createJob(input: NewJobInput): Promise<{ id: string }> {
-  const res = await fetch(`${BASE}/api/x/jobs`, {
+  const res = await authedFetch("/api/x/jobs", {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -211,9 +232,8 @@ export async function patchJob(
   id: string,
   status: "active" | "paused",
 ): Promise<void> {
-  const res = await fetch(`${BASE}/api/x/jobs/${id}`, {
+  const res = await authedFetch(`/api/x/jobs/${id}`, {
     method: "PATCH",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
@@ -228,8 +248,5 @@ export async function patchJob(
 }
 
 export async function deleteJob(id: string): Promise<void> {
-  await fetch(`${BASE}/api/x/jobs/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
+  await authedFetch(`/api/x/jobs/${id}`, { method: "DELETE" });
 }
