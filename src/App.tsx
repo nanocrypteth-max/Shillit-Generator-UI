@@ -54,6 +54,7 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [copiedCa, setCopiedCa] = useState(false);
+  const [copiedInfo, setCopiedInfo] = useState(false);
   const gate = useGenerateAccess();
 
   function copyShillitCa() {
@@ -120,11 +121,31 @@ export default function App() {
   const m = result?.market;
   const chg = Number(m?.priceChange24h ?? 0);
 
+  function copyTokenInfo() {
+    if (!m) return;
+    const lines = [
+      `$${m.symbol} — ${m.name}`,
+      `Chain: ${m.chain} (${m.source})`,
+      `Price: ${usd(m.priceUsd)}`,
+      `${m.marketCap == null ? "FDV" : "Market Cap"}: ${usd(m.marketCap ?? m.fdv)}`,
+      `24h Volume: ${usd(m.volume24h)}`,
+      `Liquidity: ${usd(m.liquidityUsd)}`,
+      `24h Change: ${(chg > 0 ? "+" : "") + chg.toFixed(1)}%`,
+      `24h Txns: ${m.txns24h.buys} buys / ${m.txns24h.sells} sells`,
+      `Age: ${ageStr(m.pairCreatedAt)}`,
+      `CA: ${m.ca}`,
+      m.url ? `Chart: ${m.url}` : "",
+    ].filter(Boolean);
+    navigator.clipboard.writeText(lines.join("\n"));
+    setCopiedInfo(true);
+    setTimeout(() => setCopiedInfo(false), 1400);
+  }
+
   return (
     <div className="wrap">
       <header>
         <div className="brand">
-          SHILL<b>IT</b>AI<span className="blink">_</span>
+          SHILL<b>://</b>GEN<span className="blink">_</span>
         </div>
         <div className="sub">
           paste a contract address &rarr; auto-fetch market data &rarr; generate
@@ -304,6 +325,9 @@ export default function App() {
                   <span className="tag">
                     {m.source} · {m.chain}
                   </span>
+                  <button className="copy tok-copy" onClick={copyTokenInfo}>
+                    {copiedInfo ? "Copied ✓" : "Copy info"}
+                  </button>
                 </div>
 
                 <div className="grid">
