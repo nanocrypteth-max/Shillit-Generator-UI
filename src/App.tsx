@@ -3,6 +3,7 @@ import { generate, ApiException } from "./api";
 import PriceChart from "./PriceChart";
 import PostToX from "./PostToX";
 import Scheduler from "./Scheduler";
+import Profile from "./Profile";
 import { useGenerateAccess } from "./gate";
 import { SHILLIT_CA } from "./gateConfig";
 import type { GenerateResponse, Tone, Lang, TokenMarket } from "./types";
@@ -22,6 +23,8 @@ const TONES: { value: Tone; label: string }[] = [
   { value: "degen", label: "Degen" },
   { value: "professional", label: "Professional" },
   { value: "ct", label: "CT Style" },
+  { value: "analysis", label: "Analysis" },
+  { value: "risk", label: "Risk Mode" },
   { value: "reply", label: "Comment / Reply" },
 ];
 
@@ -170,7 +173,7 @@ async function renderTokenCardBlob(m: TokenMarket, chg: number): Promise<Blob> {
   ctx.font = "700 12px " + DISP;
   ctx.fillStyle = "rgba(182,255,60,0.5)";
   ctx.textAlign = "right";
-  ctx.fillText("SHILL://GEN", W - P, H - 14);
+  ctx.fillText("SHILLITAI", W - P, H - 14);
   ctx.textAlign = "left";
 
   return await new Promise<Blob>((res, rej) =>
@@ -182,7 +185,9 @@ async function renderTokenCardBlob(m: TokenMarket, chg: number): Promise<Blob> {
 }
 
 export default function App() {
-  const [mode, setMode] = useState<"manual" | "scheduler">("manual");
+  const [mode, setMode] = useState<"profile" | "manual" | "scheduler">(
+    "manual",
+  );
   const [ca, setCa] = useState("");
   const [chain, setChain] = useState("");
   const [tone, setTone] = useState<Tone>("hype");
@@ -316,7 +321,7 @@ export default function App() {
       <header>
         <div className="brand-wrap">
           <div className="brand">
-            SHILL<b>://</b>GEN<span className="blink">_</span>
+            SHILL<b>IT</b>AI<span className="blink">_</span>
           </div>
           <div className="sub">
             paste a contract address &rarr; auto-fetch market data &rarr;
@@ -389,6 +394,12 @@ export default function App() {
 
       <div className="modebar">
         <button
+          className={"modetab" + (mode === "profile" ? " on" : "")}
+          onClick={() => setMode("profile")}
+        >
+          Profile
+        </button>
+        <button
           className={"modetab" + (mode === "manual" ? " on" : "")}
           onClick={() => setMode("manual")}
         >
@@ -398,6 +409,8 @@ export default function App() {
           Auto Scheduler <span className="soon">SOON</span>
         </button>
       </div>
+
+      {mode === "profile" && <Profile />}
 
       {mode === "scheduler" && <Scheduler />}
 
@@ -436,7 +449,7 @@ export default function App() {
                 </select>
               </div>
               <div className="third">
-                <label htmlFor="tone">Tone</label>
+                <label htmlFor="tone">Mode</label>
                 <select
                   id="tone"
                   value={tone}
@@ -579,7 +592,10 @@ export default function App() {
                 </div>
                 <div className="post">{result.post}</div>
 
-                <PostToX text={result.post} />
+                <PostToX
+                  text={result.post}
+                  onConfigure={() => setMode("profile")}
+                />
               </div>
             </div>
           )}

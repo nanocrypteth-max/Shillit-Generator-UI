@@ -14,7 +14,15 @@ import {
 } from "./xPost";
 
 const CHAINS = ["", "eth", "bsc", "base", "arbitrum", "polygon", "solana"];
-const TONES = ["hype", "degen", "professional", "ct", "reply"];
+const TONES = [
+  "hype",
+  "degen",
+  "professional",
+  "ct",
+  "analysis",
+  "risk",
+  "reply",
+];
 
 function fmtIn(iso: string): string {
   const ms = new Date(iso).getTime() - Date.now();
@@ -208,7 +216,7 @@ export default function Scheduler() {
             </select>
           </div>
           <div className="third">
-            <label>Tone</label>
+            <label>Mode</label>
             <select value={tone} onChange={(e) => setTone(e.target.value)}>
               {TONES.map((t) => (
                 <option key={t} value={t}>

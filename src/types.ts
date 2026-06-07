@@ -30,7 +30,14 @@ export interface ApiError {
   message?: string;
 }
 
-export type Tone = "hype" | "degen" | "professional" | "ct" | "reply";
+export type Tone =
+  | "hype"
+  | "degen"
+  | "professional"
+  | "ct"
+  | "reply"
+  | "analysis"
+  | "risk";
 export type Lang = "en" | "zh" | "ja" | "de";
 
 export interface GenerateRequest {
