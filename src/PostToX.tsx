@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useGenerateAccess } from "./gate";
 import {
   connectX,
   getXConfig,
@@ -24,6 +25,9 @@ export default function PostToX({
   text: string;
   onConfigure?: () => void;
 }) {
+  const gate = useGenerateAccess();
+  const needWallet = gate.enabled && !gate.authenticated;
+
   const [connected, setConnected] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [cfg, setCfg] = useState<XConfigView | null>(null);
@@ -41,9 +45,10 @@ export default function PostToX({
     setCfg(c);
   }
 
+  // Re-check on mount and whenever wallet auth flips (disconnect changes the owner).
   useEffect(() => {
     refresh();
-  }, []);
+  }, [gate.authenticated]);
   useEffect(() => setState({ k: "idle" }), [text]);
 
   const configured = !!cfg?.configured;
@@ -79,6 +84,12 @@ export default function PostToX({
   }
 
   async function onClick() {
+    // Wallet disconnected -> send the user to wallet login first.
+    if (needWallet) {
+      setState({ k: "error", msg: "Connect your wallet first" });
+      gate.login();
+      return;
+    }
     // No credentials yet -> show the message; the inline setup form is right below.
     if (!configured) {
       setState({ k: "error", msg: "Fill the key to your X first" });
@@ -133,7 +144,9 @@ export default function PostToX({
       </button>
 
       <div className="x-meta">
-        {connected && username ? (
+        {needWallet ? (
+          <span className="x-dim">connect your wallet to post</span>
+        ) : connected && username ? (
           <>
             <span>connected as @{username}</span>
             <button className="x-link" onClick={disconnect}>
@@ -148,7 +161,7 @@ export default function PostToX({
       </div>
 
       {/* Configured: show only the Client ID (dApp chip) + point edits to Profile. */}
-      {configured && cfg?.clientId && (
+      {!needWallet && configured && cfg?.clientId && (
         <div className="xid-chip">
           <span className="xid-label">X CLIENT ID</span>
           <span className="xid-value">{cfg.clientId}</span>
@@ -165,7 +178,7 @@ export default function PostToX({
       )}
 
       {/* Not configured: inline first-time setup (Option C). */}
-      {!configured && (
+      {!needWallet && !configured && (
         <div className="x-inline-form">
           <label>Client ID</label>
           <input
