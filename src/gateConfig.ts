@@ -29,3 +29,59 @@ export const PAYMENT_CHAIN_ID = Number(
 // Shillit AI's own token contract address, shown in the UI (read-only display).
 // Leave empty to hide the CA bar.
 export const SHILLIT_CA = (import.meta.env.VITE_SHILLIT_CA ?? "") as string;
+
+// ---------------------------------------------------------------------------
+// Feature toggles — set to Y or N in .env (case-insensitive). Anything else
+// falls back to the default shown here.
+//   VITE_ENABLE_PROFILE=Y      -> show/enable the Profile tab
+//   VITE_ENABLE_SCHEDULER=N    -> Auto Scheduler tab (disabled by default)
+// ---------------------------------------------------------------------------
+function yn(v: string | undefined, def: boolean): boolean {
+  const s = (v ?? "").trim().toUpperCase();
+  if (["Y", "YES", "TRUE", "1", "ON"].includes(s)) return true;
+  if (["N", "NO", "FALSE", "0", "OFF"].includes(s)) return false;
+  return def;
+}
+export const ENABLE_PROFILE = yn(import.meta.env.VITE_ENABLE_PROFILE, true);
+export const ENABLE_SCHEDULER = yn(
+  import.meta.env.VITE_ENABLE_SCHEDULER,
+  false,
+);
+
+// Allow editing X credentials (Client ID / Secret) from the Profile tab.
+// Default N: credentials can be SET once (inline, from the Post-to-X panel) but
+// not edited afterwards until you flip this to Y.
+export const ENABLE_CRED_EDIT = yn(
+  import.meta.env.VITE_ENABLE_CRED_EDIT,
+  false,
+);
+
+// ---------------------------------------------------------------------------
+// Mode (tone) list for the dropdown. Parameterized so adding a mode = editing
+// one env var; no code change needed for the UI.
+//   VITE_MODES="hype:Hype,degen:Degen,custom:My Custom Mode"
+// Format: comma-separated "value:Label" pairs. If a pair has no ":", the value
+// is reused as the label (capitalized).
+// NOTE: a brand-new value also needs a matching voice in the BACKEND
+// (gemini.ts TONE_GUIDE + VALID_TONES) to behave distinctly — otherwise the
+// server falls back to the default "hype" voice for unknown modes.
+// ---------------------------------------------------------------------------
+export interface ModeOption {
+  value: string;
+  label: string;
+}
+const DEFAULT_MODES =
+  "hype:Hype,degen:Degen,professional:Professional,ct:CT Style,analysis:Analysis,risk:Risk Mode,reply:Comment / Reply";
+
+export const MODES: ModeOption[] = (import.meta.env.VITE_MODES ?? DEFAULT_MODES)
+  .split(",")
+  .map((s: string) => s.trim())
+  .filter(Boolean)
+  .map((pair: string) => {
+    const i = pair.indexOf(":");
+    if (i === -1) {
+      const v = pair.trim();
+      return { value: v, label: v.charAt(0).toUpperCase() + v.slice(1) };
+    }
+    return { value: pair.slice(0, i).trim(), label: pair.slice(i + 1).trim() };
+  });

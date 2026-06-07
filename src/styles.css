@@ -1209,3 +1209,26 @@ button.tf.lime:hover:not(:disabled) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* PostToX inline first-time setup form */
+.x-inline-form {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #0a0e10;
+}
+.x-inline-form label {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 10px 0 5px;
+}
+.x-inline-form label:first-child {
+  margin-top: 0;
+}
+.xid-edit {
+  margin-left: auto;
+}

@@ -21,7 +21,7 @@ import {
   usePrivy,
   useSendTransaction,
 } from "@privy-io/react-auth";
-import { setPrivyTokenProvider } from "./xPost";
+import { setPrivyTokenProvider, logoutX } from "./xPost";
 import {
   GENERATE_PRICE,
   PAYMENT_CHAIN_ID,
@@ -65,10 +65,26 @@ function NoGate({ children }: { children: ReactNode }) {
 
 // Gate enabled: bridge Privy state into the gate context.
 function PrivyGate({ children }: { children: ReactNode }) {
-  const { ready, authenticated, user, login, logout, getAccessToken } =
-    usePrivy();
+  const {
+    ready,
+    authenticated,
+    user,
+    login,
+    logout: privyLogout,
+    getAccessToken,
+  } = usePrivy();
   const { sendTransaction } = useSendTransaction();
   const address = (user?.wallet?.address as string | undefined) ?? null;
+
+  // Disconnecting the wallet should also end the X session (token still valid here).
+  const logout = async () => {
+    try {
+      await logoutX();
+    } catch {
+      /* ignore */
+    }
+    await privyLogout();
+  };
 
   // Let xPost.ts attach the Privy access token to X API calls, so the backend
   // keys credentials/tokens by this user's identity (not the cookie).

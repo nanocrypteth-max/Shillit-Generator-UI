@@ -56,6 +56,7 @@ export interface XConfigView {
   callbackUrl: string;
   scopes: string;
   defaultCallback: string;
+  secretLast3: string | null;
 }
 
 export async function getXConfig(): Promise<XConfigView> {

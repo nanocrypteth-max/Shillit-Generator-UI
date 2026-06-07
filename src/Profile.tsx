@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useGenerateAccess } from "./gate";
 import { getXConfig, saveXConfig, XPostError, type XConfigView } from "./xPost";
+import { ENABLE_CRED_EDIT } from "./gateConfig";
 
 function avatarGradient(address: string | null): string {
   if (!address) return "linear-gradient(135deg, #b6ff3c, #6f9e22)";
@@ -37,7 +38,10 @@ export default function Profile() {
   async function save() {
     setMsg(null);
     if (!clientId.trim() || !clientSecret.trim()) {
-      setMsg({ ok: false, text: "Both Client ID and Client Secret are required." });
+      setMsg({
+        ok: false,
+        text: "Both Client ID and Client Secret are required.",
+      });
       return;
     }
     setSaving(true);
@@ -52,7 +56,10 @@ export default function Profile() {
       await load();
       setMsg({ ok: true, text: "Saved. Your X app credentials are stored." });
     } catch (e) {
-      setMsg({ ok: false, text: e instanceof XPostError ? e.message : (e as Error).message });
+      setMsg({
+        ok: false,
+        text: e instanceof XPostError ? e.message : (e as Error).message,
+      });
     } finally {
       setSaving(false);
     }
@@ -68,7 +75,10 @@ export default function Profile() {
         {gate.enabled ? (
           gate.authenticated ? (
             <div className="pf-wallet">
-              <span className="pf-avatar" style={{ background: avatarGradient(gate.address) }} />
+              <span
+                className="pf-avatar"
+                style={{ background: avatarGradient(gate.address) }}
+              />
               <div className="pf-wallet-info">
                 <div className="pf-row">
                   <span className="pf-label">Status</span>
@@ -77,25 +87,39 @@ export default function Profile() {
                 <div className="pf-row">
                   <span className="pf-label">Name</span>
                   <span className="pf-val">
-                    {gate.address ? `${gate.address.slice(0, 6)}…${gate.address.slice(-4)}` : "Wallet"}
+                    {gate.address
+                      ? `${gate.address.slice(0, 6)}…${gate.address.slice(-4)}`
+                      : "Wallet"}
                   </span>
                 </div>
                 <div className="pf-row">
                   <span className="pf-label">CA / Address</span>
-                  <span className="pf-val mono break">{gate.address ?? "—"}</span>
+                  <span className="pf-val mono break">
+                    {gate.address ?? "—"}
+                  </span>
                 </div>
                 <div className="pf-actions">
-                  <button className="ca-copy" onClick={copyAddr} disabled={!gate.address}>
+                  <button
+                    className="ca-copy"
+                    onClick={copyAddr}
+                    disabled={!gate.address}
+                  >
                     {copied ? "Copied ✓" : "Copy address"}
                   </button>
-                  <button className="x-link" onClick={gate.logout}>disconnect</button>
+                  <button className="x-link" onClick={gate.logout}>
+                    disconnect
+                  </button>
                 </div>
               </div>
             </div>
           ) : (
             <div className="pf-connect">
-              <span className="x-dim">Connect your wallet to see your profile.</span>
-              <button className="x-save" onClick={gate.login}>Connect Wallet</button>
+              <span className="x-dim">
+                Connect your wallet to see your profile.
+              </span>
+              <button className="x-save" onClick={gate.login}>
+                Connect Wallet
+              </button>
             </div>
           )
         ) : (
@@ -108,49 +132,79 @@ export default function Profile() {
         <div className="sched-title">X Developer App</div>
 
         {gate.enabled && !gate.authenticated ? (
-          <span className="x-dim">Connect your wallet first to manage your X app credentials.</span>
+          <span className="x-dim">
+            Connect your wallet first to manage your X app credentials.
+          </span>
+        ) : !configured ? (
+          <span className="x-dim">
+            No X app set yet — add your Client ID &amp; Secret from the “Post
+            Now to X” panel under the Manual tab.
+          </span>
         ) : (
           <>
-            {configured && (
-          <div className="ca-bar" style={{ marginBottom: 16 }}>
-            <span className="ca-label">CLIENT ID</span>
-            <span className="ca-value">{cfg?.clientId}</span>
-            <span className="pf-stored">secret stored ✓ (encrypted)</span>
-          </div>
-        )}
+            {/* Read-only view of the stored credentials. */}
+            <div className="ca-bar" style={{ marginBottom: 12 }}>
+              <span className="ca-label">CLIENT ID</span>
+              <span className="ca-value">{cfg?.clientId}</span>
+            </div>
+            <div className="ca-bar" style={{ marginBottom: 16 }}>
+              <span className="ca-label">CLIENT SECRET</span>
+              <span className="ca-value">
+                {"•".repeat(12) + (cfg?.secretLast3 ?? "")}
+              </span>
+              <span className="pf-stored">encrypted ✓</span>
+            </div>
 
-        <p className="x-form-note">
-          {configured ? "Update your X app credentials below. " : "Add your X app credentials (OAuth 2.0, Read and write). "}
-          Register this exact Callback in your X app: <code>{cfg?.defaultCallback ?? "…"}</code>
-        </p>
-
-        <label>Client ID</label>
-        <input
-          className="pf-input"
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-          placeholder="OAuth 2.0 Client ID"
-          autoComplete="off"
-          spellCheck={false}
-        />
-
-        <label>Client Secret</label>
-        <input
-          className="pf-input"
-          value={clientSecret}
-          onChange={(e) => setClientSecret(e.target.value)}
-          placeholder={configured ? "Re-enter secret to update" : "OAuth 2.0 Client Secret"}
-          type="password"
-          autoComplete="off"
-        />
-
-        <div className="x-form-actions">
-          <button className="x-save" onClick={save} disabled={saving || !clientId.trim() || !clientSecret.trim()}>
-            {saving ? "Saving…" : configured ? "Update credentials" : "Save credentials"}
-          </button>
-        </div>
-
-        {msg && <div className={msg.ok ? "x-ok" : "x-err"} style={{ marginTop: 12 }}>{msg.ok ? "✓ " : "✕ "}{msg.text}</div>}
+            {ENABLE_CRED_EDIT ? (
+              <>
+                <p className="x-form-note">
+                  Update your X app credentials. Register this Callback in your
+                  X app: <code>{cfg?.defaultCallback ?? "…"}</code>
+                </p>
+                <label>Client ID</label>
+                <input
+                  className="pf-input"
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  placeholder="OAuth 2.0 Client ID"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <label>Client Secret</label>
+                <input
+                  className="pf-input"
+                  value={clientSecret}
+                  onChange={(e) => setClientSecret(e.target.value)}
+                  placeholder="Re-enter secret to update"
+                  type="password"
+                  autoComplete="off"
+                />
+                <div className="x-form-actions">
+                  <button
+                    className="x-save"
+                    onClick={save}
+                    disabled={
+                      saving || !clientId.trim() || !clientSecret.trim()
+                    }
+                  >
+                    {saving ? "Saving…" : "Update credentials"}
+                  </button>
+                </div>
+                {msg && (
+                  <div
+                    className={msg.ok ? "x-ok" : "x-err"}
+                    style={{ marginTop: 12 }}
+                  >
+                    {msg.ok ? "✓ " : "✕ "}
+                    {msg.text}
+                  </div>
+                )}
+              </>
+            ) : (
+              <span className="x-dim">
+                Editing credentials is currently disabled.
+              </span>
+            )}
           </>
         )}
       </div>

@@ -5,8 +5,10 @@ import {
   getXStatus,
   logoutX,
   postToX,
+  saveXConfig,
   XPostError,
   type PostResult,
+  type XConfigView,
 } from "./xPost";
 
 type State =
@@ -23,28 +25,28 @@ export default function PostToX({
   onConfigure?: () => void;
 }) {
   const [connected, setConnected] = useState(false);
-  const [configured, setConfigured] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
-  const [clientId, setClientId] = useState<string | null>(null);
+  const [cfg, setCfg] = useState<XConfigView | null>(null);
   const [state, setState] = useState<State>({ k: "idle" });
 
+  // inline first-time setup form (only shown when no credentials exist yet)
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [saving, setSaving] = useState(false);
+
   async function refresh() {
-    const s = await getXStatus();
+    const [s, c] = await Promise.all([getXStatus(), getXConfig()]);
     setConnected(s.connected);
-    setConfigured(s.configured);
     setUsername(s.username);
-    if (s.configured) {
-      const c = await getXConfig();
-      setClientId(c.clientId);
-    } else {
-      setClientId(null);
-    }
+    setCfg(c);
   }
 
   useEffect(() => {
     refresh();
   }, []);
   useEffect(() => setState({ k: "idle" }), [text]);
+
+  const configured = !!cfg?.configured;
 
   async function runPost() {
     try {
@@ -77,13 +79,42 @@ export default function PostToX({
   }
 
   async function onClick() {
-    // No X credentials yet -> guide the user to the Profile tab to add them.
+    // No credentials yet -> show the message; the inline setup form is right below.
     if (!configured) {
       setState({ k: "error", msg: "Fill the key to your X first" });
-      onConfigure?.();
       return;
     }
     await runPost();
+  }
+
+  async function saveInline() {
+    if (!clientId.trim() || !clientSecret.trim()) {
+      setState({
+        k: "error",
+        msg: "Both Client ID and Client Secret are required.",
+      });
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveXConfig({
+        clientId: clientId.trim(),
+        clientSecret: clientSecret.trim(),
+        callbackUrl: cfg?.callbackUrl ?? "",
+        scopes: cfg?.scopes ?? "",
+      });
+      setClientId("");
+      setClientSecret("");
+      await refresh();
+      setState({ k: "idle" });
+    } catch (e) {
+      setState({
+        k: "error",
+        msg: e instanceof XPostError ? e.message : (e as Error).message,
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function disconnect() {
@@ -112,15 +143,59 @@ export default function PostToX({
         ) : configured ? (
           <span className="x-dim">ready — click to connect &amp; post</span>
         ) : (
-          <span className="x-dim">no X app set — add it in Profile</span>
+          <span className="x-dim">no X app set yet</span>
         )}
       </div>
 
-      {/* When credentials exist, show only the Client ID (dApp style). */}
-      {configured && clientId && (
+      {/* Configured: show only the Client ID (dApp chip) + point edits to Profile. */}
+      {configured && cfg?.clientId && (
         <div className="xid-chip">
           <span className="xid-label">X CLIENT ID</span>
-          <span className="xid-value">{clientId}</span>
+          <span className="xid-value">{cfg.clientId}</span>
+          {onConfigure && (
+            <button
+              className="x-link xid-edit"
+              onClick={onConfigure}
+              title="Edit in Profile"
+            >
+              edit
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Not configured: inline first-time setup (Option C). */}
+      {!configured && (
+        <div className="x-inline-form">
+          <label>Client ID</label>
+          <input
+            className="pf-input"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="OAuth 2.0 Client ID"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <label>Client Secret</label>
+          <input
+            className="pf-input"
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            placeholder="OAuth 2.0 Client Secret"
+            type="password"
+            autoComplete="off"
+          />
+          <p className="x-form-note">
+            Register this Callback in your X app:{" "}
+            <code>{cfg?.defaultCallback ?? "…"}</code>
+          </p>
+          <button
+            className="x-save"
+            onClick={saveInline}
+            disabled={saving || !clientId.trim() || !clientSecret.trim()}
+          >
+            {saving ? "Saving…" : "Save credentials"}
+          </button>
         </div>
       )}
 

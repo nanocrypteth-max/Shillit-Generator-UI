@@ -5,7 +5,12 @@ import PostToX from "./PostToX";
 import Scheduler from "./Scheduler";
 import Profile from "./Profile";
 import { useGenerateAccess } from "./gate";
-import { SHILLIT_CA } from "./gateConfig";
+import {
+  SHILLIT_CA,
+  MODES,
+  ENABLE_PROFILE,
+  ENABLE_SCHEDULER,
+} from "./gateConfig";
 import type { GenerateResponse, Tone, Lang, TokenMarket } from "./types";
 
 const CHAINS = [
@@ -18,15 +23,7 @@ const CHAINS = [
   { value: "solana", label: "Solana" },
 ];
 
-const TONES: { value: Tone; label: string }[] = [
-  { value: "hype", label: "Hype" },
-  { value: "degen", label: "Degen" },
-  { value: "professional", label: "Professional" },
-  { value: "ct", label: "CT Style" },
-  { value: "analysis", label: "Analysis" },
-  { value: "risk", label: "Risk Mode" },
-  { value: "reply", label: "Comment / Reply" },
-];
+// Mode list now comes from config (gateConfig.MODES) — see VITE_MODES.
 
 function usd(n: number | null | undefined): string {
   if (n == null || !isFinite(n) || n <= 0) return "n/a";
@@ -173,7 +170,7 @@ async function renderTokenCardBlob(m: TokenMarket, chg: number): Promise<Blob> {
   ctx.font = "700 12px " + DISP;
   ctx.fillStyle = "rgba(182,255,60,0.5)";
   ctx.textAlign = "right";
-  ctx.fillText("SHILLITAI", W - P, H - 14);
+  ctx.fillText("SHILL://GEN", W - P, H - 14);
   ctx.textAlign = "left";
 
   return await new Promise<Blob>((res, rej) =>
@@ -190,7 +187,7 @@ export default function App() {
   );
   const [ca, setCa] = useState("");
   const [chain, setChain] = useState("");
-  const [tone, setTone] = useState<Tone>("hype");
+  const [tone, setTone] = useState<string>(MODES[0]?.value ?? "hype");
   const [lang, setLang] = useState<Lang>("en");
   const [withHashtags, setWithHashtags] = useState(false);
   const [replyTo, setReplyTo] = useState("");
@@ -247,7 +244,7 @@ export default function App() {
       const data = await generate({
         ca: ca.trim(),
         chain: chain || undefined,
-        tone,
+        tone: tone as Tone,
         language: lang,
         withHashtags,
         replyTo: tone === "reply" ? replyTo.trim() || undefined : undefined,
@@ -396,6 +393,8 @@ export default function App() {
         <button
           className={"modetab" + (mode === "profile" ? " on" : "")}
           onClick={() => setMode("profile")}
+          disabled={!ENABLE_PROFILE}
+          title={ENABLE_PROFILE ? undefined : "Disabled"}
         >
           Profile
         </button>
@@ -405,14 +404,20 @@ export default function App() {
         >
           Manual
         </button>
-        <button className="modetab" disabled title="Coming soon">
-          Auto Scheduler <span className="soon">SOON</span>
+        <button
+          className={"modetab" + (mode === "scheduler" ? " on" : "")}
+          onClick={() => ENABLE_SCHEDULER && setMode("scheduler")}
+          disabled={!ENABLE_SCHEDULER}
+          title={ENABLE_SCHEDULER ? undefined : "Coming soon"}
+        >
+          Auto Scheduler{" "}
+          {!ENABLE_SCHEDULER && <span className="soon">SOON</span>}
         </button>
       </div>
 
-      {mode === "profile" && <Profile />}
+      {mode === "profile" && ENABLE_PROFILE && <Profile />}
 
-      {mode === "scheduler" && <Scheduler />}
+      {mode === "scheduler" && ENABLE_SCHEDULER && <Scheduler />}
 
       {mode === "manual" && (
         <>
@@ -453,9 +458,9 @@ export default function App() {
                 <select
                   id="tone"
                   value={tone}
-                  onChange={(e) => setTone(e.target.value as Tone)}
+                  onChange={(e) => setTone(e.target.value)}
                 >
-                  {TONES.map((t) => (
+                  {MODES.map((t) => (
                     <option key={t.value} value={t.value}>
                       {t.label}
                     </option>
@@ -594,7 +599,7 @@ export default function App() {
 
                 <PostToX
                   text={result.post}
-                  onConfigure={() => setMode("profile")}
+                  onConfigure={() => ENABLE_PROFILE && setMode("profile")}
                 />
               </div>
             </div>

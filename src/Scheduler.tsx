@@ -12,17 +12,9 @@ import {
   type Job,
   type XConfigView,
 } from "./xPost";
+import { MODES } from "./gateConfig";
 
 const CHAINS = ["", "eth", "bsc", "base", "arbitrum", "polygon", "solana"];
-const TONES = [
-  "hype",
-  "degen",
-  "professional",
-  "ct",
-  "analysis",
-  "risk",
-  "reply",
-];
 
 function fmtIn(iso: string): string {
   const ms = new Date(iso).getTime() - Date.now();
@@ -53,7 +45,7 @@ export default function Scheduler() {
   // job form
   const [ca, setCa] = useState("");
   const [chain, setChain] = useState("");
-  const [tone, setTone] = useState("hype");
+  const [tone, setTone] = useState(MODES[0]?.value ?? "hype");
   const [language, setLanguage] = useState("en");
   const [withHashtags, setWithHashtags] = useState(false);
   const [intervalMin, setIntervalMin] = useState(60);
@@ -218,9 +210,9 @@ export default function Scheduler() {
           <div className="third">
             <label>Mode</label>
             <select value={tone} onChange={(e) => setTone(e.target.value)}>
-              {TONES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {MODES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
                 </option>
               ))}
             </select>
