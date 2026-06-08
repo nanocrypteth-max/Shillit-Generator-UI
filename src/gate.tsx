@@ -1,13 +1,13 @@
 // gate.tsx
-// Wallet-login gate around the Generate action, backed by Privy.
+// Wallet-login gate around the Generate action, backed by Privy (Solana-only).
 //
 // Design:
 // - AppProviders wraps the app. If PRIVY_APP_ID is set -> PrivyProvider + PrivyGate
 //   (real gate). If not set -> NoGate (gate disabled, app works as before).
 // - Components call useGenerateAccess() -> { ready, authenticated, address, login,
 //   logout, ensureAccess }. The Generate button calls ensureAccess() before running.
-// - ensureAccess(): not ready -> block; not logged in -> open Privy login; logged in
-//   and price > 0 -> charge on-chain; else allow.
+// - Solana-only: embedded + external wallets are Solana; the wallet modal is
+//   restricted to Solana ("solana-only"). Generate is login-only (price = 0).
 
 import {
   createContext,
@@ -16,18 +16,13 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { PrivyProvider, usePrivy } from "@privy-io/react-auth";
 import {
-  PrivyProvider,
-  usePrivy,
-  useSendTransaction,
-} from "@privy-io/react-auth";
+  toSolanaWalletConnectors,
+  useWallets as useSolanaWallets,
+} from "@privy-io/react-auth/solana";
 import { setPrivyTokenProvider, logoutX } from "./xPost";
-import {
-  GENERATE_PRICE,
-  PAYMENT_CHAIN_ID,
-  PAYMENT_RECIPIENT,
-  PRIVY_APP_ID,
-} from "./gateConfig";
+import { GENERATE_PRICE, PRIVY_APP_ID } from "./gateConfig";
 
 export type AccessResult = { ok: true } | { ok: false; reason: string };
 
@@ -73,8 +68,15 @@ function PrivyGate({ children }: { children: ReactNode }) {
     logout: privyLogout,
     getAccessToken,
   } = usePrivy();
-  const { sendTransaction } = useSendTransaction();
-  const address = (user?.wallet?.address as string | undefined) ?? null;
+  const { wallets: solanaWallets } = useSolanaWallets();
+
+  // Prefer a connected/embedded Solana wallet address; fall back to user.wallet.
+  const address =
+    solanaWallets?.[0]?.address ??
+    (user?.wallet?.chainType === "solana"
+      ? (user.wallet.address as string)
+      : null) ??
+    null;
 
   // Disconnecting the wallet should also end the X session (token still valid here).
   const logout = async () => {
@@ -102,28 +104,15 @@ function PrivyGate({ children }: { children: ReactNode }) {
       login(); // opens Privy modal; user retries Generate after connecting
       return { ok: false, reason: "Connect your wallet to generate." };
     }
-    // ---- Pay-per-generate (only when a price is configured) ----
+    // Paid generate is not wired for Solana yet — keep it login-only (price = 0).
     if (GENERATE_PRICE > 0) {
-      if (!PAYMENT_RECIPIENT)
-        return { ok: false, reason: "Payment recipient not configured." };
-      try {
-        const { parseEther } = await import("viem");
-        await sendTransaction({
-          to: PAYMENT_RECIPIENT as `0x${string}`,
-          value: parseEther(String(GENERATE_PRICE)),
-          chainId: PAYMENT_CHAIN_ID,
-        });
-      } catch (e: any) {
-        return {
-          ok: false,
-          reason: e?.message
-            ? `Payment failed: ${e.message}`
-            : "Payment cancelled.",
-        };
-      }
+      return {
+        ok: false,
+        reason: "Paid generate is not enabled for Solana yet.",
+      };
     }
     return { ok: true };
-  }, [ready, authenticated, login, sendTransaction]);
+  }, [ready, authenticated, login]);
 
   const value: Gate = {
     enabled: true,
@@ -137,17 +126,22 @@ function PrivyGate({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+const solanaConnectors = toSolanaWalletConnectors();
+
 export default function AppProviders({ children }: { children: ReactNode }) {
   if (!PRIVY_APP_ID) return <NoGate>{children}</NoGate>;
   return (
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        appearance: { theme: "dark", accentColor: "#b6ff3c" },
-        loginMethods: ["wallet", "email"],
-        embeddedWallets: {
-          ethereum: { createOnLogin: "users-without-wallets" },
+        appearance: {
+          theme: "dark",
+          accentColor: "#b6ff3c",
+          walletChainType: "solana-only",
         },
+        loginMethods: ["wallet", "email"],
+        embeddedWallets: { solana: { createOnLogin: "users-without-wallets" } },
+        externalWallets: { solana: { connectors: solanaConnectors } },
       }}
     >
       <PrivyGate>{children}</PrivyGate>

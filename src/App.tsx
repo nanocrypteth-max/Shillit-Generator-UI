@@ -42,7 +42,10 @@ function usd(n: number | null | undefined): string {
 // Deterministic gradient avatar from a wallet address.
 function avatarGradient(address: string | null): string {
   if (!address) return "linear-gradient(135deg, #b6ff3c, #6f9e22)";
-  const h = parseInt(address.slice(2, 8) || "0", 16) % 360;
+  // Char-hash so it works for both 0x (EVM) and base58 (Solana) addresses.
+  let h = 0;
+  for (let i = 0; i < address.length; i++)
+    h = (h * 31 + address.charCodeAt(i)) % 360;
   return `linear-gradient(135deg, hsl(${h} 75% 55%), hsl(${(h + 50) % 360} 75% 45%))`;
 }
 
