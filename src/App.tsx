@@ -170,7 +170,7 @@ async function renderTokenCardBlob(m: TokenMarket, chg: number): Promise<Blob> {
   ctx.font = "700 12px " + DISP;
   ctx.fillStyle = "rgba(182,255,60,0.5)";
   ctx.textAlign = "right";
-  ctx.fillText("SHILL://GEN", W - P, H - 14);
+  ctx.fillText("SHILLIT.AI", W - P, H - 14);
   ctx.textAlign = "left";
 
   return await new Promise<Blob>((res, rej) =>

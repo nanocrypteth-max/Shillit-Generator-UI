@@ -3,7 +3,7 @@ import { fetchChart } from "./api";
 import type { ChartPoint, TokenMarket } from "./types";
 
 const POLL_MS = 30_000;
-const WATERMARK = "SHILL.IT";
+const WATERMARK = "SHILLIT.AI";
 
 // On-screen sparkline dims
 const SW = 660,
