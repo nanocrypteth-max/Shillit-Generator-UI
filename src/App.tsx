@@ -21,15 +21,7 @@ import type {
   RiskReport,
 } from "./types";
 
-const CHAINS = [
-  { value: "", label: "Auto" },
-  { value: "eth", label: "Ethereum" },
-  { value: "bsc", label: "BSC" },
-  { value: "base", label: "Base" },
-  { value: "arbitrum", label: "Arbitrum" },
-  { value: "polygon", label: "Polygon" },
-  { value: "solana", label: "Solana" },
-];
+const CHAINS = [{ value: "solana", label: "Solana" }];
 
 // Mode list now comes from config (gateConfig.MODES) — see VITE_MODES.
 
