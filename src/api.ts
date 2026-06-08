@@ -8,6 +8,7 @@ import type {
   GenerateResponse,
   ApiError,
   ChartResponse,
+  RiskReport,
 } from "./types";
 
 const BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
@@ -20,27 +21,6 @@ export class ApiException extends Error {
     this.code = code;
     this.status = status;
   }
-}
-
-export async function fetchChart(
-  network: string,
-  pool: string,
-  tf: "minute" | "hour" | "day" = "hour",
-): Promise<ChartResponse> {
-  const qs = new URLSearchParams({ network, pool, tf });
-  const res = await fetch(`${BASE}/api/chart?${qs}`, {
-    signal: AbortSignal.timeout(10_000),
-  });
-  const data = (await res.json().catch(() => ({}))) as Partial<
-    ChartResponse & ApiError
-  >;
-  if (!res.ok)
-    throw new ApiException(
-      data.error ?? "error",
-      data.message ?? "chart failed",
-      res.status,
-    );
-  return { points: data.points ?? [] };
 }
 
 export async function generate(
@@ -75,4 +55,45 @@ export async function generate(
     );
   }
   return data as GenerateResponse;
+}
+
+export async function fetchChart(
+  network: string,
+  pool: string,
+  tf: "minute" | "hour" | "day" = "hour",
+): Promise<ChartResponse> {
+  const qs = new URLSearchParams({ network, pool, tf });
+  const res = await fetch(`${BASE}/api/chart?${qs}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
+  const data = (await res.json().catch(() => ({}))) as Partial<
+    ChartResponse & ApiError
+  >;
+  if (!res.ok)
+    throw new ApiException(
+      data.error ?? "error",
+      data.message ?? "chart failed",
+      res.status,
+    );
+  return { points: data.points ?? [] };
+}
+
+export async function getSecurity(
+  ca: string,
+  chain: string,
+): Promise<RiskReport> {
+  const qs = new URLSearchParams({ ca, chain });
+  const res = await fetch(`${BASE}/api/security?${qs}`, {
+    signal: AbortSignal.timeout(15_000),
+  });
+  const data = (await res.json().catch(() => ({}))) as Partial<
+    RiskReport & ApiError
+  >;
+  if (!res.ok)
+    throw new ApiException(
+      data.error ?? "error",
+      data.message ?? "security failed",
+      res.status,
+    );
+  return data as RiskReport;
 }

@@ -56,6 +56,12 @@ export const ENABLE_CRED_EDIT = yn(
   false,
 );
 
+// Footer social links. Set these to your own profiles; they default to the
+// platform homepages so the icons are always visible.
+export const X_URL = (import.meta.env.VITE_X_URL ?? "https://x.com") as string;
+export const FARCASTER_URL = (import.meta.env.VITE_FARCASTER_URL ??
+  "https://warpcast.com") as string;
+
 // ---------------------------------------------------------------------------
 // Mode (tone) list for the dropdown. Parameterized so adding a mode = editing
 // one env var; no code change needed for the UI.

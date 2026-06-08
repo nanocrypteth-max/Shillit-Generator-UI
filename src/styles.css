@@ -1232,3 +1232,132 @@ button.tf.lime:hover:not(:disabled) {
 .xid-edit {
   margin-left: auto;
 }
+
+/* Risk Mode security table */
+.risk-card {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 14px 16px;
+  background: #0a0e10;
+}
+.risk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.risk-head > span {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--text);
+}
+.risk-overall {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.risk-overall.ok {
+  color: #b6ff3c;
+  border-color: var(--accent-dim);
+}
+.risk-overall.warn {
+  color: #ffd23c;
+  border-color: #5a5326;
+}
+.risk-overall.danger {
+  color: #ff5470;
+  border-color: #5a2730;
+}
+.risk-overall.unknown {
+  color: var(--dim);
+}
+.risk-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.risk-table td {
+  padding: 9px 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.risk-table tr:last-child td {
+  border-bottom: none;
+}
+.risk-label {
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.risk-value {
+  text-align: right;
+  font-family: var(--mono);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.risk-value.ok {
+  color: #b6ff3c;
+}
+.risk-value.warn {
+  color: #ffd23c;
+}
+.risk-value.danger {
+  color: #ff5470;
+}
+.risk-value.unknown {
+  color: var(--dim);
+}
+.risk-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: currentColor;
+  vertical-align: middle;
+}
+.risk-loading {
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  padding: 8px 2px;
+}
+.risk-note {
+  color: var(--dim);
+  font-size: 11px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* Footer social icons */
+.social {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.social-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--dim);
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.social-ico:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: rgba(182, 255, 60, 0.06);
+}

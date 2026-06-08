@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { generate, ApiException } from "./api";
+import { generate, getSecurity, ApiException } from "./api";
 import PriceChart from "./PriceChart";
 import PostToX from "./PostToX";
 import Scheduler from "./Scheduler";
@@ -10,8 +10,16 @@ import {
   MODES,
   ENABLE_PROFILE,
   ENABLE_SCHEDULER,
+  X_URL,
+  FARCASTER_URL,
 } from "./gateConfig";
-import type { GenerateResponse, Tone, Lang, TokenMarket } from "./types";
+import type {
+  GenerateResponse,
+  Tone,
+  Lang,
+  TokenMarket,
+  RiskReport,
+} from "./types";
 
 const CHAINS = [
   { value: "", label: "Auto" },
@@ -195,6 +203,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateResponse | null>(null);
+  const [risk, setRisk] = useState<RiskReport | null>(null);
+  const [riskLoading, setRiskLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [copiedCa, setCopiedCa] = useState(false);
@@ -250,6 +260,16 @@ export default function App() {
         replyTo: tone === "reply" ? replyTo.trim() || undefined : undefined,
       });
       setResult(data);
+
+      // Risk Mode: also pull a token security report and show it as a table.
+      setRisk(null);
+      if (tone === "risk") {
+        setRiskLoading(true);
+        getSecurity(data.market.ca, data.market.chain)
+          .then(setRisk)
+          .catch(() => setRisk(null))
+          .finally(() => setRiskLoading(false));
+      }
     } catch (e) {
       setError(e instanceof ApiException ? e.message : (e as Error).message);
     } finally {
@@ -597,6 +617,46 @@ export default function App() {
                 </div>
                 <div className="post">{result.post}</div>
 
+                {tone === "risk" && (
+                  <div className="risk-card">
+                    <div className="risk-head">
+                      <span>Security Check</span>
+                      {risk && (
+                        <span className={"risk-overall " + risk.overall.level}>
+                          Overall Risk: {risk.overall.label}
+                        </span>
+                      )}
+                    </div>
+                    {riskLoading ? (
+                      <div className="risk-loading">Scanning contract…</div>
+                    ) : risk && risk.rows.length ? (
+                      <table className="risk-table">
+                        <tbody>
+                          {risk.rows.map((r) => (
+                            <tr key={r.key}>
+                              <td className="risk-label">{r.label}</td>
+                              <td className={"risk-value " + r.level}>
+                                <span className="risk-dot" /> {r.value}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="risk-loading">
+                        {risk?.note ??
+                          "Security data unavailable for this token."}
+                      </div>
+                    )}
+                    {risk?.note && risk.rows.length > 0 && (
+                      <div className="risk-note">{risk.note}</div>
+                    )}
+                    <div className="risk-note">
+                      Source: GoPlus · automated checks, not a guarantee. DYOR.
+                    </div>
+                  </div>
+                )}
+
                 <PostToX
                   text={result.post}
                   onConfigure={() => ENABLE_PROFILE && setMode("profile")}
@@ -608,6 +668,46 @@ export default function App() {
       )}
 
       <footer>
+        <div className="social">
+          <a
+            className="social-ico"
+            href={X_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="X (Twitter)"
+            title="X"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+          </a>
+          <a
+            className="social-ico"
+            href={FARCASTER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Farcaster"
+            title="Farcaster"
+          >
+            <svg
+              viewBox="0 0 1000 1000"
+              width="18"
+              height="18"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M257.778 155.556h484.444v688.889h-71.111V528.889h-.697c-7.86-87.212-81.156-155.556-170.434-155.556s-162.574 68.344-170.434 155.556h-.697v315.556h-71.111z" />
+              <path d="M128.889 253.333l28.889 97.778h24.444v395.556c-12.273 0-22.222 9.949-22.222 22.222v26.667h-4.444c-12.273 0-22.222 9.949-22.222 22.222v26.667h248.889v-26.667c0-12.273-9.949-22.222-22.222-22.222h-4.444v-26.667c0-12.273-9.949-22.222-22.222-22.222h-26.667V253.333z" />
+              <path d="M675.556 746.667c-12.273 0-22.222 9.949-22.222 22.222v26.667h-4.444c-12.273 0-22.222 9.949-22.222 22.222v26.667h248.889v-26.667c0-12.273-9.949-22.222-22.222-22.222h-4.444v-26.667c0-12.273-9.949-22.222-22.222-22.222V351.111h24.444l28.889-97.778h-160v493.333z" />
+            </svg>
+          </a>
+        </div>
         Posts are grounded in live on-chain data with a "Not financial advice.
         DYOR." disclaimer. You are responsible for disclosure &amp;
         platform/regulatory compliance when publishing.

@@ -56,3 +56,20 @@ export interface ChartPoint {
 export interface ChartResponse {
   points: ChartPoint[];
 }
+
+export type RiskLevel = "ok" | "warn" | "danger" | "unknown";
+export interface RiskRow {
+  key: string;
+  label: string;
+  value: string;
+  level: RiskLevel;
+}
+export interface RiskReport {
+  ca: string;
+  chain: string;
+  source: string;
+  supported: boolean;
+  rows: RiskRow[];
+  overall: { level: RiskLevel; label: string };
+  note?: string;
+}
